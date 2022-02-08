@@ -19,7 +19,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late List<PlayerModel> coordinates;
   List<String> substitutes = ["L", "M", "N", "O", "P"];
-  bool isDragging = false;
   @override
   void initState() {
     coordinates = playerCoordinates[0];
@@ -96,7 +95,9 @@ class _MyAppState extends State<MyApp> {
                               children: List.generate(
                                 coordinates.length,
                                 (index) {
-                                  return Align(
+                                  return AnimatedAlign(
+                                    duration: const Duration(seconds: 1),
+                                    curve: Curves.fastOutSlowIn,
                                     alignment: BottomLeftCoordinate(
                                       coordinates[index].point.x,
                                       coordinates[index].point.y,
@@ -267,21 +268,6 @@ class _MyAppState extends State<MyApp> {
       height: 60,
       width: 60,
       child: Draggable<PlayerModel>(
-        onDragStarted: () {
-          setState(() {
-            isDragging = true;
-          });
-        },
-        onDraggableCanceled: (_, __) {
-          setState(() {
-            isDragging = false;
-          });
-        },
-        onDragCompleted: () {
-          setState(() {
-            isDragging = false;
-          });
-        },
         // Data is the value this Draggable stores.
         data: destinationPlayerModel,
         feedback: MouseRegion(
