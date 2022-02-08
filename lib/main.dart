@@ -262,7 +262,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  getPlayer(PlayerModel playerModel, {bool isSubstitute = false}) {
+  getPlayer(PlayerModel destinationPlayerModel, {bool isSubstitute = false}) {
     return SizedBox(
       height: 60,
       width: 60,
@@ -282,9 +282,8 @@ class _MyAppState extends State<MyApp> {
             isDragging = false;
           });
         },
-
         // Data is the value this Draggable stores.
-        data: playerModel,
+        data: destinationPlayerModel,
         feedback: MouseRegion(
           cursor: SystemMouseCursors.grabbing,
           child: Container(
@@ -320,51 +319,56 @@ class _MyAppState extends State<MyApp> {
                     color: Colors.black, shape: BoxShape.circle),
                 child: Center(
                   child: Text(
-                    playerModel.id,
+                    destinationPlayerModel.id,
                     style: const TextStyle(fontSize: 15, color: Colors.white),
                   ),
                 ),
               );
             },
-            onAccept: (PlayerModel acceptedPlayerModel) {
+            onAccept: (PlayerModel sourcePlayerModel) {
               List<List<PlayerModel>> tempList = [];
+              //looping through all the formations.
               for (var formation in playerCoordinates) {
-                List<PlayerModel> swappedFormation = [];
-                final acceptedPlayerModelIndex = formation.indexWhere(
-                    (element) => element.id == acceptedPlayerModel.id);
-                final landingPlayerModelIndex = formation
-                    .indexWhere((element) => element.id == playerModel.id);
-                if (acceptedPlayerModelIndex != -1 &&
-                    landingPlayerModelIndex != -1) {
-                  setState(
-                    () {
-                      swappedFormation = swap(playerModel, acceptedPlayerModel);
-                      tempList.add(swappedFormation);
-                      if (jsonEncode(
-                              formation.map((e) => e.toJson()).toList()) ==
-                          jsonEncode(
-                              coordinates.map((e) => e.toJson()).toList()))
-                        coordinates = swappedFormation;
-                    },
-                  );
-                } else if (acceptedPlayerModelIndex == -1 &&
-                    landingPlayerModelIndex != -1) {
-                  setState(() {
-                    swappedFormation = swapFromSubstitutesToPlayers(
-                        playerModel, acceptedPlayerModel);
-                    tempList.add(swappedFormation);
-                    if (jsonEncode(formation) == jsonEncode(coordinates))
-                      coordinates = swappedFormation;
-                  });
-                } else if (acceptedPlayerModelIndex != -1 &&
-                    landingPlayerModelIndex == -1) {
-                  setState(() {
-                    swappedFormation = swapFromPlayersToSubstitutes(
-                        playerModel, acceptedPlayerModel);
-                    tempList.add(swappedFormation);
-                    if (jsonEncode(formation) == jsonEncode(coordinates))
-                      coordinates = swappedFormation;
-                  });
+                final sourcePlayerIndex = formation.indexWhere(
+                    (element) => element.id == sourcePlayerModel.id);
+                final destinationPlayerIndex = formation.indexWhere(
+                    (element) => element.id == destinationPlayerModel.id);
+                if (sourcePlayerIndex != -1 && destinationPlayerIndex != -1) {
+                  // Swapping with-in the field
+                  formation[sourcePlayerIndex].id = destinationPlayerModel.id;
+                  formation[destinationPlayerIndex].id = sourcePlayerModel.id;
+                  tempList.add(formation);
+                  if (jsonEncode(formation.map((e) => e.toJson()).toList()) ==
+                      jsonEncode(coordinates.map((e) => e.toJson()).toList())) {
+                    coordinates = formation;
+                  }
+                  setState(() {});
+                } else if (sourcePlayerIndex == -1 &&
+                    destinationPlayerIndex != -1) {
+                  // We are pulling the substitue into field
+                  formation[destinationPlayerIndex].id = sourcePlayerModel.id;
+                  tempList.add(formation);
+                  if (jsonEncode(formation.map((e) => e.toJson()).toList()) ==
+                      jsonEncode(coordinates.map((e) => e.toJson()).toList())) {
+                    int _indx = substitutes.indexWhere(
+                        (element) => element == sourcePlayerModel.id);
+                    substitutes[_indx] = destinationPlayerModel.id;
+                    coordinates = formation;
+                  }
+                  setState(() {});
+                } else if (sourcePlayerIndex != -1 &&
+                    destinationPlayerIndex == -1) {
+                  // We are taking out player from field to substitues
+                  formation[sourcePlayerIndex].id = destinationPlayerModel.id;
+                  tempList.add(formation);
+                  if (jsonEncode(formation.map((e) => e.toJson()).toList()) ==
+                      jsonEncode(coordinates.map((e) => e.toJson()).toList())) {
+                    int _indx = substitutes.indexWhere(
+                        (element) => element == destinationPlayerModel.id);
+                    substitutes[_indx] = sourcePlayerModel.id;
+                    coordinates = formation;
+                  }
+                  setState(() {});
                 }
               }
               playerCoordinates = tempList;
@@ -373,49 +377,5 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
     );
-  }
-
-  swap(PlayerModel swapToPlayerModel, PlayerModel swapPlayerModel) {
-    List<PlayerModel> arr = coordinates;
-    final toIndex =
-        arr.indexWhere((element) => element.id == swapPlayerModel.id);
-    final fromIndex =
-        arr.indexWhere((element) => element.id == swapToPlayerModel.id);
-    arr[toIndex].point = swapToPlayerModel.point;
-    arr[fromIndex].point = swapPlayerModel.point;
-    return arr;
-  }
-
-  swapFromSubstitutesToPlayers(
-      PlayerModel playerModel, PlayerModel acceptedPlayerModel) {
-    var tempPlayerId = playerModel.id;
-    List<PlayerModel> arr = coordinates;
-    List<String> subArr = substitutes;
-    final index = arr.indexWhere((element) => element.id == playerModel.id);
-    arr[index].id = acceptedPlayerModel.id;
-    final subIndex =
-        subArr.indexWhere((element) => element == acceptedPlayerModel.id);
-    setState(() {
-      subArr[subIndex] = tempPlayerId;
-    });
-    // arr.forEach((element) {
-    //   print("${element.id}    ${element.point}");
-    // });
-    return arr;
-  }
-
-  swapFromPlayersToSubstitutes(
-      PlayerModel playerModel, PlayerModel acceptedPlayerModel) {
-    List<PlayerModel> arr = coordinates;
-    List<String> subArr = substitutes;
-    final subIndex = subArr.indexWhere((element) => element == playerModel.id);
-
-    setState(() {
-      subArr[subIndex] = acceptedPlayerModel.id;
-    });
-    final index =
-        arr.indexWhere((element) => element.id == acceptedPlayerModel.id);
-    arr[index].id = playerModel.id;
-    return arr;
   }
 }
